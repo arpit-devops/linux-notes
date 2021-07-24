@@ -1,0 +1,299 @@
+Raw Socket :- if we could inject packet with coustom header and data into the network directly .
+
+we manufacture our own packet and send it to the network by bypass all the network stack / layer
+
+so, ABSOLUTE power 
+most of the active network monitoring toll / sniffer / hacking tools use this .  promiscious mode 
+ 
+promicious mode :- ifconfig etho promisc
+
+
+"PF_PACKET"  interface to create raw socket . it is the software interface to send / received packets at layer 2 of OSI layer / device driver .
+
+HOW to create a raw socket ?
+=> call socket api with appropriate argument :-
+  socket(PF_PACKET , SOCK_RAW , int protocol); 
+first to argument is fixed while protocol is decided as which kind of filtering and rule we need to follows like ETH_P_ALL to received all types of packets.
+
+
+HOW TO MAKE A SNIFFER PROGRAM :-
+
+1 create RAW socket -> socket()
+
+2 set interface you want to sniff on in promiscious mode . either programically or by using ifconfig command .
+
+3 Bind Raw socket to this interface ->bind()
+
+4 Receive packet on the socket -> recvfrom()
+
+5 process / modify / strip received packets 
+
+6 close the raw socket().
+
+
+
+HOW TO MAKE A PACKET INJECTOR :-
+
+1 create a raw socket -> socket()
+
+2 Bind socket to the interface you want to send packet onto -> bind()
+
+3 create a packet . here header are created by our self like ethernet header , ip header , tcp header / udp header .
+
+4 send a packet -> sendto()
+
+5 close the raw socket -> close()
+
+
+
+Now make a very simple sniffer program :-
+
+which binds to an interface and display packet which is on screen
+
+
+
+#include<stdio.h>
+#include<stdlib.h>
+#include<sys/socket.h>
+#include<features.h>
+#include<linux/if_packet.h>
+#include<linux/if_ether.h>
+#include<errno.h>
+#include<sys/ioctl.h>
+#include<net/if.h>
+
+int main(int argc , char **argv)
+{
+int raw ;                                // raw is packet discriptor for raw socket 
+unsigned char packet_buffer[2048];       // contain packet from the interface
+int len;
+int packets_to_sniff;                    // how many packet to sniff enter by the user as command line argument 
+struct sockaddr_ll packet_info;           // some of the information that kernel gives back to us about the packet which we are sniffed .
+int packet_info_size = sizeof(packet_info);  // given by sockaddr_ll structure
+
+/* create the raw socket */
+ 
+raw = CreaterRawSocket(ETH_p_IP);          // see at last for function defination
+
+/* Bind socket to interface */
+
+BindRawScoketToInterface(argv[1], raw , ETH_P_IP); 
+
+/* Get number of packet to sniff from user */
+
+packet_to_sniff = atoi (argv[2]);
+
+/* start sniffing and print Hex of every packet */
+
+while(packet_to_sniff--)
+{
+if(len = recvfrom(raw , packet_buffer,2048 , 0 ,(struct sockaddr*)&packet_info , &packet_info_size))==-1)
+	{
+		perror("recv from retun -1 : ");
+		exit(-1);
+	}
+else
+	{
+		/* packet has been received successfully !! */
+		PrintPacketInHex(packet_buffer , len);
+	}
+}
+
+return 0;
+}
+
+
+
+Now to run this program first make interface into promicious mode as 
+$ ifconfig eth0 promisc
+
+$ gcc sniffer -o sniffer
+
+$./sniffer eth0 1
+
+
+
+int CreateRawSocket(int protocol_to_sniff)
+{
+
+	int rawsock;
+	if((rawsock=socket(PF_PACKET , SOCK_RAW , htons(protocol_to_sniff))==-1)
+		{
+			perror("Error creating raw socket : ");
+			exit(-1);
+		}
+		return rawsock;
+}
+
+int BindRawSocketToInterface(char *device , int rawsock , int protocol)
+{
+
+	struct sockaddr_ll sll;
+	struct ifreq ifr;         // how we can find about there structure one way is to go to header file like <net/if.h> for this
+                                  // second and easy way is utility is "cscope" 
+	bzero(&sll , sizeof(sll));
+	bzero(&ifr , sizeof(ifr));
+	
+	strncpy((char*)ifr.ifr_name,device,IFNAMSIZ);
+	if(ioctl(rawsock,SIOCGIFINDEX , &ifr))==-1)
+	{
+		printf("Error getting Interface index ! \n");
+		exit(-1);
+	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+HOW TO DECODE THE ETHERNET HEADER ?
+
+here we decode received packet which we get from the RAW socket and this is only diffrent between the two program
+
+suppose we received the packet and we print it into hex part 
+as PrintPacketInHex(packet_buffer , len );
+
+
+now our answer to the question start from here 
+
+ParseEthernetHeader(packet_buffer , len);
+// here first 6 byte is Desination MAC 
+// here second 6 byte is Source MAC
+// and third 2 byte is Protocol
+// SO, first 14 byte of the packet is nothing but ethernet header
+
+
+/*  There is an Ethernet frame Header */
+
+struct ethhdr   // it is define <linux/if_ether.h>
+{
+
+	unsigned char h_dest[ETH_ALEN];   // ETH_ALEN is 6 for ethernet
+	unsigned char h_source[ETH_ALEN];
+	unsigned short h_proto;
+}
+ 
+
+
+ParseEthernetHeader(packet_buffer , len)
+{
+struct ethhdr *ethernet_header;
+
+if(len > sizeof(struct ethhdr))  //  we checked if received frame  should greater that ethernet header
+{
+	ethernet_header=(struct ethher *)packet ;  // here we cast the packet to the ethhdr so that we can do decoding  , this is most importing step for parsing here
+	PrintInHex("Destination MAC : ", ethernet_header->h_dest , 6);	// this will print upto six byte in hex 
+	printf("\n");
+	
+	PrintInHex("Source MAC : ", ethernet_header->h_dest , 6);	// this will print upto six byte in hex 
+	printf("\n");
+	
+	PrintInHex("PROTOCOL : ", (void *)&ethernet_header->h_dest , 2); // this is int so we use (void *) 
+	printf("\n");
+}
+
+else
+{
+	printf("packet size too small ! \n");
+}
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+  
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+ 
