@@ -1,0 +1,12 @@
+the reason is that your script spawns a new shell process as a child of the current shell. Any environment changes you make in the child process cannot affect the parent. When you use . or source, you are not spawning a new child process, you are running the commands in the current shel
+
+
+You should source your script, with
+
+. ./script
+or
+
+source ./script
+
+
+echo $$   => to check current bash process id
