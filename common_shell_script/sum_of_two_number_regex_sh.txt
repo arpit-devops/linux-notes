@@ -1,0 +1,22 @@
+#!/bin/bash
+
+read -p "enter first number : "  num1
+read -p "enter second number : "  num2 
+
+regex=^[0-9]*[0-9]+$
+
+if ! [[ $num1 =~ $regex ]]
+then 
+        echo "Invalid number :  $num1"
+        exit
+fi
+
+if ! [[ $num2 =~ $regex ]]
+then
+        echo "Invalid number :  $num2"
+        exit
+fi
+
+sum=`echo $num1 + $num2 | bc` 
+
+echo "sum of $num1 and $num2 is $sum"
