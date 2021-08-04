@@ -1,0 +1,28 @@
+#!/bin/bash
+  
+echo "----------------------------- Giving most memory and cpu usgae for third process ------------------------------------"
+
+#ps aux --sort pmem | head -n 4 | awk 'BEGIN{print "huuu"} {print $NF}'
+
+cpu_process_name=`ps aux --sort -pcpu | head -n 4 | awk -v i=4 -v j=11 'FNR == i {print $j}'`
+cpu_process_pid=`ps aux --sort -pcpu | head -n 4 | awk -v i=4 -v j=2 'FNR == i {print $j}'`
+cpu_process_cpu=`ps aux --sort -pcpu | head -n 4 | awk -v i=4 -v j=3 'FNR == i {print $j}'`
+cpu_process_mem=`ps aux --sort -pcpu | head -n 4 | awk -v i=4 -v j=2 'FNR == i {print $j}'`
+cpu_process_port=`sudo ss -plnt | grep $cpu_process_pid | awk '{print $4}' | sed -e 's/[^0-9]//g'`
+
+echo -e "3rd most cpu consuming process detail \n p_name = $cpu_process_name \n p_pid = $cpu_process_pid \n p_cpu= $cpu_process_cpu \n p_mem = $cpu_process_mem \n p_port = $cpu_process_port" > process_detail.txt
+
+
+
+mem_process_name=`ps aux --sort -pmem | head -n 4 | awk -v i=4 -v j=11 'FNR == i {print $j}'`
+mem_process_pid=`ps aux --sort -pmem | head -n 4 | awk -v i=4 -v j=2 'FNR == i {print $j}'`
+mem_process_cpu=`ps aux --sort -pmem | head -n 4 | awk -v i=4 -v j=3 'FNR == i {print $j}'`
+mem_process_mem=`ps aux --sort -pmem | head -n 4 | awk -v i=4 -v j=2 'FNR == i {print $j}'`
+mem_process_port=`sudo ss -plnt | grep $mem_process_pid | awk '{print $4}' | sed -e 's/[^0-9]//g'`
+
+echo -e "\n 3rd most mem consuming process detail \n p_name = $mem_process_name \n p_pid = $mem_process_pid \n p_cpu= $mem_process_cpu \n p_mem = $mem_process_mem \n p_port = $mem_process_port" >> process_detail.txt
+
+
+echo "cat process_detail.txt"
+
+cat process_detail.txt
